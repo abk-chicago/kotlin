@@ -171,9 +171,9 @@ fun getExpectedTypePredicate(
                     else {
                         val expectedType = when (accessTarget) {
                             is AccessTarget.Call ->
-                                (accessTarget.resolvedCall.getResultingDescriptor() as? VariableDescriptor)?.getType()
+                                (accessTarget.resolvedCall.resultingDescriptor as? VariableDescriptor)?.type
                             is AccessTarget.Declaration ->
-                                accessTarget.descriptor.getType()
+                                (accessTarget.descriptor as? VariableDescriptor)?.type
                             else ->
                                 null
                         }
@@ -239,8 +239,8 @@ fun getExpectedTypePredicate(
 
 fun Instruction.getPrimaryDeclarationDescriptorIfAny(bindingContext: BindingContext): DeclarationDescriptor? {
     return when (this) {
-        is CallInstruction -> return resolvedCall.getResultingDescriptor()
-        else -> PseudocodeUtil.extractVariableDescriptorIfAny(this, false, bindingContext)
+        is CallInstruction -> return resolvedCall.resultingDescriptor
+        else -> PseudocodeUtil.extractVariableDescriptorIfAny(this, false, bindingContext) as? VariableDescriptor
     }
 }
 
