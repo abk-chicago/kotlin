@@ -24,8 +24,11 @@ import org.jetbrains.kotlin.cfg.pseudocodeTraverser.Edges
 import org.jetbrains.kotlin.cfg.pseudocodeTraverser.TraversalOrder
 import org.jetbrains.kotlin.cfg.pseudocodeTraverser.collectData
 import org.jetbrains.kotlin.cfg.pseudocodeTraverser.traverse
+import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.VariableDescriptor
 import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.calls.util.FakeCallableDescriptorForObject
 import java.util.ArrayList
 import java.util.HashMap
 
@@ -74,18 +77,22 @@ class PseudocodeVariableDataCollector(
         pseudocode.traverse(TraversalOrder.FORWARD, { instruction ->
             if (instruction is VariableDeclarationInstruction) {
                 val variableDeclarationElement = instruction.variableDeclarationElement
-                val descriptor = bindingContext.get(BindingContext.DECLARATION_TO_DESCRIPTOR, variableDeclarationElement)
-                if (descriptor != null) {
-                    // TODO: investigate why tests fail without this eager computation here
-                    descriptor.toString()
-
-                    assert(descriptor is VariableDescriptor) {
-                        "Variable descriptor should correspond to the instruction for ${instruction.element.text}.\n" +
-                        "Descriptor: $descriptor"
-                    }
-                    blockScopeVariableInfo.registerVariableDeclaredInScope(
-                            descriptor as VariableDescriptor, instruction.blockScope
-                    )
+                val descriptor = bindingContext.get(BindingContext.DECLARATION_TO_DESCRIPTOR, variableDeclarationElement) ?: return@traverse
+                // TODO: investigate why tests fail without this eager computation here
+                // TODO: https://youtrack.jetbrains.com/issue/KT-13354
+                descriptor.toString()
+                when (descriptor) {
+                    is VariableDescriptor ->
+                            blockScopeVariableInfo.registerVariableDeclaredInScope(descriptor, instruction.blockScope)
+                    is ClassDescriptor ->
+                            if (descriptor.kind == ClassKind.OBJECT || descriptor.kind == ClassKind.ENUM_ENTRY) {
+                                val variableDescriptorForObject = FakeCallableDescriptorForObject(descriptor)
+                                blockScopeVariableInfo.registerVariableDeclaredInScope(variableDescriptorForObject, instruction.blockScope)
+                            }
+                    else -> throw AssertionError(
+                                "Variable or class descriptor should correspond to the instruction for ${instruction.element.text}.\n" +
+                                "Descriptor: $descriptor"
+                            )
                 }
             }
         })

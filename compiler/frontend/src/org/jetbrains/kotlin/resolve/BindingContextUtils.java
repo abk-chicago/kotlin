@@ -30,6 +30,7 @@ import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt;
 import org.jetbrains.kotlin.resolve.calls.model.ResolvedCall;
 import org.jetbrains.kotlin.resolve.calls.model.VariableAsFunctionResolvedCall;
 import org.jetbrains.kotlin.resolve.calls.smartcasts.DataFlowInfoFactory;
+import org.jetbrains.kotlin.resolve.calls.util.FakeCallableDescriptorForObject;
 import org.jetbrains.kotlin.resolve.diagnostics.MutableDiagnosticsWithSuppression;
 import org.jetbrains.kotlin.types.KotlinType;
 import org.jetbrains.kotlin.types.TypeUtils;
@@ -59,7 +60,8 @@ public class BindingContextUtils {
     @Nullable
     public static VariableDescriptor extractVariableDescriptorIfAny(@NotNull BindingContext bindingContext, @Nullable KtElement element, boolean onlyReference) {
         DeclarationDescriptor descriptor = null;
-        if (!onlyReference && (element instanceof KtVariableDeclaration || element instanceof KtParameter)) {
+        if (!onlyReference &&
+            (element instanceof KtVariableDeclaration || element instanceof KtParameter || element instanceof KtEnumEntry)) {
             descriptor = bindingContext.get(BindingContext.DECLARATION_TO_DESCRIPTOR, element);
         }
         else if (element instanceof KtSimpleNameExpression) {
@@ -68,8 +70,13 @@ public class BindingContextUtils {
         else if (element instanceof KtQualifiedExpression) {
             descriptor = extractVariableDescriptorIfAny(bindingContext, ((KtQualifiedExpression) element).getSelectorExpression(), onlyReference);
         }
-        if (descriptor instanceof VariableDescriptor) {
+        if (descriptor instanceof VariableDescriptor)
             return (VariableDescriptor) descriptor;
+        if (descriptor instanceof ClassDescriptor) {
+            ClassDescriptor classDescriptor = (ClassDescriptor) descriptor;
+            if (classDescriptor.getKind() == ClassKind.ENUM_ENTRY || classDescriptor.getKind() == ClassKind.OBJECT) {
+                return new FakeCallableDescriptorForObject(classDescriptor);
+            }
         }
         return null;
     }
