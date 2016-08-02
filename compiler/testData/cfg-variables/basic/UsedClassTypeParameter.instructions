@@ -1,0 +1,54 @@
+== println ==
+fun println(t: Any?) = t
+---------------------
+L0:
+  1 <START>                                     INIT: in: {} out: {}
+    v(t: Any?)                                  INIT: in: {} out: {t=D}
+    magic[FAKE_INITIALIZER](t: Any?) -> <v0>    INIT: in: {t=D} out: {t=D}
+    w(t|<v0>)                                   INIT: in: {t=D} out: {t=ID}     USE: in: {t=READ} out: {t=READ}
+    r(t) -> <v1>                                INIT: in: {t=ID} out: {t=ID}    USE: in: {} out: {t=READ}
+    ret(*|<v1>) L1
+L1:
+    <END>
+error:
+    <ERROR>                                     INIT: in: {} out: {}
+sink:
+    <SINK>                                      INIT: in: {t=ID} out: {t=ID}    USE: in: {} out: {}
+=====================
+== UsedClassTypeParameter ==
+class UsedClassTypeParameter<T>(t: T) {
+    {
+        println(t)
+    }
+}
+---------------------
+L0:
+  1 <START>                                  INIT: in: {} out: {}
+    v(t: T)                                  INIT: in: {} out: {t=D}
+    magic[FAKE_INITIALIZER](t: T) -> <v0>    INIT: in: {t=D} out: {t=D}
+    w(t|<v0>)                                INIT: in: {t=D} out: {t=ID}
+L1:
+    <END>                                    INIT: in: {t=ID} out: {t=ID}
+error:
+    <ERROR>                                  INIT: in: {} out: {}
+sink:
+    <SINK>                                   INIT: in: {t=ID} out: {t=ID}    USE: in: {} out: {}
+=====================
+== anonymous_0 ==
+{
+        println(t)
+    }
+---------------------
+L0:
+  1 <START>                                   INIT: in: {} out: {}
+  2 mark({ println(t) })
+    magic[UNRESOLVED_CALL](t) -> <v0>
+    mark(println(t))
+    call(println(t), println|<v0>) -> <v1>
+L1:
+  1 <END>
+error:
+    <ERROR>
+sink:
+    <SINK>                                                            USE: in: {} out: {}
+=====================

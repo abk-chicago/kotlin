@@ -807,6 +807,12 @@ public class PseudoValueTestGenerated extends AbstractPseudoValueTest {
                 doTest(fileName);
             }
 
+            @TestMetadata("UsedClassTypeParameter.kt")
+            public void testUsedClassTypeParameter() throws Exception {
+                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/cfg-variables/basic/UsedClassTypeParameter.kt");
+                doTest(fileName);
+            }
+
             @TestMetadata("VariablesInitialization.kt")
             public void testVariablesInitialization() throws Exception {
                 String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/cfg-variables/basic/VariablesInitialization.kt");

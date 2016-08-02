@@ -1,0 +1,24 @@
+== println ==
+fun println(t: Any?) = t
+---------------------
+    <v0>: *   NEW: magic[FAKE_INITIALIZER](t: Any?) -> <v0>
+t   <v1>: *   NEW: r(t) -> <v1>
+=====================
+== UsedClassTypeParameter ==
+class UsedClassTypeParameter<T>(t: T) {
+    {
+        println(t)
+    }
+}
+---------------------
+    <v0>: {<: T}   NEW: magic[FAKE_INITIALIZER](t: T) -> <v0>
+=====================
+== anonymous_0 ==
+{
+        println(t)
+    }
+---------------------
+t                <v0>: *   NEW: magic[UNRESOLVED_CALL](t) -> <v0>
+println(t)       <v1>: *   NEW: call(println(t), println|<v0>) -> <v1>
+{ println(t) }   <v1>: *   COPY
+=====================
