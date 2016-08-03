@@ -16,74 +16,137 @@
 
 package org.jetbrains.kotlin.annotation.processing.test.processor
 
-import com.intellij.testFramework.registerServiceInstance
-import org.jetbrains.kotlin.android.synthetic.AndroidConfigurationKeys
-import org.jetbrains.kotlin.android.synthetic.AndroidExtensionPropertiesComponentContainerContributor
-import org.jetbrains.kotlin.android.synthetic.codegen.AndroidExpressionCodegenExtension
-import org.jetbrains.kotlin.android.synthetic.codegen.AndroidOnDestroyClassBuilderInterceptorExtension
-import org.jetbrains.kotlin.android.synthetic.res.AndroidLayoutXmlFileManager
-import org.jetbrains.kotlin.android.synthetic.res.AndroidVariant
-import org.jetbrains.kotlin.android.synthetic.res.CliAndroidLayoutXmlFileManager
-import org.jetbrains.kotlin.android.synthetic.res.CliAndroidPackageFragmentProviderExtension
 import org.jetbrains.kotlin.annotation.AbstractAnnotationProcessingExtension
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.codegen.AbstractBytecodeTextTest
-import org.jetbrains.kotlin.codegen.extensions.ClassBuilderInterceptorExtension
-import org.jetbrains.kotlin.codegen.extensions.ExpressionCodegenExtension
-import org.jetbrains.kotlin.config.CompilerConfiguration
-import org.jetbrains.kotlin.extensions.StorageComponentContainerContributor
-import org.jetbrains.kotlin.lang.resolve.android.test.createTestEnvironment
-import org.jetbrains.kotlin.lang.resolve.android.test.getResPaths
+import org.jetbrains.kotlin.codegen.CodegenTestUtil
+import org.jetbrains.kotlin.java.model.JeName
+import org.jetbrains.kotlin.java.model.elements.JeAnnotationMirror
+import org.jetbrains.kotlin.java.model.elements.JeMethodExecutableElement
+import org.jetbrains.kotlin.java.model.elements.JeTypeElement
 import org.jetbrains.kotlin.resolve.jvm.extensions.AnalysisCompletedHandlerExtension
-import org.jetbrains.kotlin.resolve.jvm.extensions.PackageFragmentProviderExtension
 import org.jetbrains.kotlin.test.ConfigurationKind
 import org.jetbrains.kotlin.test.KotlinTestUtils
 import org.jetbrains.kotlin.test.TestJdkKind
-import org.jetbrains.kotlin.test.testFramework.KtUsefulTestCase
 import java.io.File
+import java.nio.file.Files
+import javax.annotation.processing.Completion
+import javax.annotation.processing.ProcessingEnvironment
 import javax.annotation.processing.Processor
+import javax.annotation.processing.RoundEnvironment
+import javax.lang.model.SourceVersion
+import javax.lang.model.element.*
 
 class AnnotationProcessingExtensionForTests(
-        val processors: List<Processor>,
-        generatedSourcesOutputDir: File,
-        classesOutputDir: File,
-        javaSourceRoots: List<File>
-) : AbstractAnnotationProcessingExtension(generatedSourcesOutputDir, classesOutputDir, javaSourceRoots) {
+        val processors: List<Processor>
+) : AbstractAnnotationProcessingExtension(createTempDir(), createTempDir(), listOf()) {
     override fun loadAnnotationProcessors() = processors
+    
+    private companion object {
+        fun createTempDir(): File = Files.createTempDirectory("ap-test").toFile().apply {
+            deleteOnExit()
+        }
+    }
 }
 
-abstract class AbstractAndroidProcessorTest : AbstractBytecodeTextTest() {
-
-    private fun createEnvironment(path: String) {
-        return createEnvironmentForConfiguration(KotlinTestUtils.newConfiguration(ConfigurationKind.ALL, TestJdkKind.MOCK_JDK), path)
-    }
-
-    private fun createEnvironmentForConfiguration(configuration: CompilerConfiguration, path: String) {
-        val layoutPaths = getResPaths(path)
-        myEnvironment = createTestEnvironment(configuration, layoutPaths)
-    }
-
-    private fun KtUsefulTestCase.createTestEnvironment(configuration: CompilerConfiguration): KotlinCoreEnvironment {
-        val myEnvironment = KotlinCoreEnvironment.createForTests(testRootDisposable, configuration, EnvironmentConfigFiles.JVM_CONFIG_FILES)
-        val project = myEnvironment.project
-
-        val apExtension = AnnotationProcessingExtensionForTests(listOf(), )
+abstract class AbstractProcessorTest : AbstractBytecodeTextTest() {
+    abstract val testDataDir: String
+    
+    private fun createTestEnvironment(processors: List<Processor>): KotlinCoreEnvironment {
+        val configuration = KotlinTestUtils.newConfiguration(ConfigurationKind.ALL, TestJdkKind.MOCK_JDK)
+        val environment = KotlinCoreEnvironment.createForTests(testRootDisposable, configuration, EnvironmentConfigFiles.JVM_CONFIG_FILES)
+        val project = environment.project
+        
+        val apExtension = AnnotationProcessingExtensionForTests(processors)
         AnalysisCompletedHandlerExtension.registerExtension(project, apExtension)
 
-        return myEnvironment
+        return environment
     }
 
-    override fun doTest(path: String) {
-        val fileName = path + getTestName(true) + ".kt"
-        createEnvironment(path)
-        loadFileByFullPath(fileName)
-        val expected = readExpectedOccurrences(fileName)
-        val actual = generateToText()
-
-
-
-
-        checkGeneratedTextAgainstExpectedOccurrences(actual, expected)
+    fun doTest(path: String, processors: List<Processor>) {
+        myEnvironment = createTestEnvironment(processors)
+        
+        loadFileByFullPath(path)
+        CodegenTestUtil.generateFiles(myEnvironment, myFiles)
     }
+
+    protected fun Element.assertHasAnnotation(fqName: String, vararg parameterValues: Any?) {
+        val annotation = annotationMirrors.first { it is JeAnnotationMirror && it.psi.qualifiedName == fqName }
+        val actualValues = annotation.elementValues.values
+        assertEquals(parameterValues.size, actualValues.size)
+
+        for ((expected, actual) in parameterValues.zip(actualValues)) {
+            assertEquals(expected, actual.value)
+        }
+    }
+
+    protected fun test(
+            name: String,
+            vararg supportedAnnotations: String,
+            process: (Set<TypeElement>, RoundEnvironment, ProcessingEnvironment) -> Unit
+    ) = testAP(true, name, process, *supportedAnnotations)
+
+    protected fun testShouldNotRun(
+            name: String,
+            vararg supportedAnnotations: String
+    ) = testAP(false, name, { set, roundEnv, env -> fail("Should not run") }, *supportedAnnotations)
+
+    private fun testAP(
+            shouldRun: Boolean,
+            name: String,
+            process: (Set<TypeElement>, RoundEnvironment, ProcessingEnvironment) -> Unit,
+            vararg supportedAnnotations: String
+    ) {
+        val ktFileName = File(testDataDir, name + ".kt")
+        var started = false
+        val processor = object : Processor {
+            lateinit var processingEnv: ProcessingEnvironment
+            
+            override fun getSupportedOptions() = setOf<String>()
+
+            override fun process(annotations: Set<TypeElement>, roundEnv: RoundEnvironment): Boolean {
+                if (!roundEnv.processingOver()) {
+                    started = true
+                    process(annotations, roundEnv, processingEnv)
+                }
+                return false
+            }
+
+            override fun init(env: ProcessingEnvironment) {
+                processingEnv = env
+            }
+
+            override fun getCompletions(
+                    element: Element?,
+                    annotation: AnnotationMirror?,
+                    member: ExecutableElement?,
+                    userText: String?
+            ): Iterable<Completion>? {
+                return emptyList()
+            }
+
+            override fun getSupportedSourceVersion() = SourceVersion.RELEASE_6
+            override fun getSupportedAnnotationTypes() = supportedAnnotations.toSet()
+        }
+
+        doTest(ktFileName.canonicalPath, listOf(processor))
+        
+        if (started != shouldRun) {
+            fail("Annotation processor " + (if (shouldRun) "was not started" else "was started"))
+        }
+    }
+    
+    protected fun TypeElement.findMethod(name: String, vararg parameterTypes: String): JeMethodExecutableElement {
+        return enclosedElements.first {
+            if (it !is JeMethodExecutableElement
+                || it.simpleName.toString() != name 
+                || parameterTypes.size != it.parameters.size) return@first false
+            parameterTypes.zip(it.parameters).all { it.first == it.second.asType().toString() }
+        } as JeMethodExecutableElement
+    }
+    
+    protected fun ProcessingEnvironment.findClass(fqName: String) = elementUtils.getTypeElement(fqName) as JeTypeElement 
+
+    protected fun assertEquals(expected: String, actual: Name) = assertEquals(expected, actual.toString())
 }

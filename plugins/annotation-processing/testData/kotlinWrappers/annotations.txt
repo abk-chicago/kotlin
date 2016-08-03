@@ -1,5 +1,5 @@
 @test.MainAnno(a = "A", b = 5)
-public final Main {
+public final class Main {
     @test.XAnno(color = GREEN)
     @org.jetbrains.annotations.NotNull
     private final java.lang.String x
