@@ -194,6 +194,7 @@ val KClass<*>.superclasses: List<KClass<*>>
 
 /**
  * All supertypes of this class, including indirect ones, in no particular order.
+ * There is not more than one type in the returned collection that has any given classifier.
  */
 val KClass<*>.allSupertypes: Collection<KType>
     get() = DFS.dfs(
@@ -226,6 +227,7 @@ val KClass<*>.allSupertypes: Collection<KType>
 /**
  * All superclasses of this class, including indirect ones, in no particular order.
  * Includes superclasses and superinterfaces of the class, but does not include the class itself.
+ * The returned collection does not contain more than one instance of any given class.
  */
 val KClass<*>.allSuperclasses: Collection<KClass<*>>
     get() = allSupertypes.map { supertype ->
