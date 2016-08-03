@@ -21,6 +21,7 @@ import org.jetbrains.kotlin.java.model.types.*
 import javax.lang.model.element.AnnotationMirror
 import javax.lang.model.element.AnnotationValue
 import javax.lang.model.element.Element
+import javax.lang.model.element.ElementKind
 import javax.lang.model.type.TypeMirror
 
 class DefaultJeElementRenderer : JeElementRenderer {
@@ -31,9 +32,16 @@ class DefaultJeElementRenderer : JeElementRenderer {
                 element.enclosedElements.forEach { appendln(render(it).withMargin()).appendln() }
             }
             is JeTypeElement -> buildString {
-                appendln(renderModifiers(element) + element.simpleName + " {")
+                val classType = when (element.kind) {
+                    ElementKind.ANNOTATION_TYPE -> "@interface"
+                    ElementKind.INTERFACE -> "interface"
+                    ElementKind.ENUM -> "enum"
+                    ElementKind.CLASS -> "class"
+                    else -> throw IllegalStateException("Invalid class type: ${element.kind}")
+                }
+                appendln(renderModifiers(element) + classType + ' ' + element.simpleName + " {")
                 appendln(element.enclosedElements.joinToString(LINE_SEPARATOR.repeat(2)) { render(it).withMargin() })
-                appendln("}")
+                append("}")
             }
             is JeVariableElement -> renderModifiers(element) + renderType(element.asType()) + " " + element.simpleName
             is JeMethodExecutableElement -> buildString {
