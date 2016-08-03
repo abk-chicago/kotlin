@@ -23,6 +23,7 @@ import org.jetbrains.kotlin.load.java.structure.reflect.createArrayType
 import org.jetbrains.kotlin.load.java.structure.reflect.parameterizedTypeArguments
 import org.jetbrains.kotlin.load.java.structure.reflect.primitiveByWrapper
 import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.types.TypeUtils
 import org.jetbrains.kotlin.types.Variance
 import java.lang.reflect.GenericArrayType
 import java.lang.reflect.ParameterizedType
@@ -58,7 +59,7 @@ internal class KTypeImpl(
                     return KClassImpl(elementClassifier.jvmErasure.java.createArrayType())
                 }
 
-                if (!type.isMarkedNullable) {
+                if (!TypeUtils.isNullableType(type)) {
                     return KClassImpl(jClass.primitiveByWrapper ?: jClass)
                 }
 

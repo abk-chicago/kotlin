@@ -45,7 +45,8 @@ fun others(
         p5: List<String>?,
         p6: Map.Entry<Int, Double>,
         p7: Unit?,
-        p8: String
+        p8: String,
+        p9: Nothing
 ) {}
 
 inline fun <reified T : Any> wrapper(): KClass<T> = T::class
@@ -103,7 +104,8 @@ fun box(): String {
             List::class,
             Map.Entry::class,
             Unit::class,
-            String::class
+            String::class,
+            Nothing::class
     )
 
     return "OK"
