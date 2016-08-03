@@ -87,8 +87,9 @@ internal class KTypeImpl(
                         val javaType = javaType
                         when (javaType) {
                             is Class<*> -> {
-                                if (!javaType.isArray) throw KotlinReflectionInternalError("Non-array class type is generic: $this")
-                                javaType.componentType
+                                // It's either an array or a raw type.
+                                // TODO: return upper bound of the corresponding parameter instead?
+                                if (javaType.isArray) javaType.componentType else Any::class.java
                             }
                             is GenericArrayType -> {
                                 if (i != 0) throw KotlinReflectionInternalError("Array type has been queried for a non-0th argument: $this")
