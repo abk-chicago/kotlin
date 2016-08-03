@@ -1266,13 +1266,17 @@ class ControlFlowProcessor(private val trace: BindingTrace) {
 
         override fun visitClass(klass: KtClass) {
             if (klass.isEnum()) {
-                klass.declarations.filterIsInstance<KtEnumEntry>().forEach {
-                    builder.declareEnumEntry(it)
-                    generateInitializer(it, computePseudoValueForParameterOrEnumEntry(it))
-                    generateInstructions(it)
-                }
-                klass.getCompanionObjects().forEach {
-                    generateInstructions(it)
+                klass.declarations.forEach {
+                    when (it) {
+                        is KtEnumEntry -> {
+                            builder.declareEnumEntry(it)
+                            generateInitializer(it, computePseudoValueForParameterOrEnumEntry(it))
+                            generateInstructions(it)
+                        }
+                        is KtObjectDeclaration -> {
+                            generateInstructions(it)
+                        }
+                    }
                 }
             }
             if (klass.hasPrimaryConstructor()) {

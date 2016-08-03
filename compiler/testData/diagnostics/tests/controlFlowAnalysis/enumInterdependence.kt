@@ -27,3 +27,18 @@ enum class D(val x: Int) {
     D1(<!UNINITIALIZED_ENUM_ENTRY!>D2<!>.x),
     D2(D1.x)
 }
+
+enum class E(val v: Int) {
+    E1(Nested.COPY);
+
+    object Nested {
+        val COPY = E1.v
+    }
+}
+// From KT-13322
+object Object1 {
+    val y: Any = Object2.z // z is not yet initialized (?!)
+    object Object2 {
+        val z: Any = Object1.y
+    }
+}
