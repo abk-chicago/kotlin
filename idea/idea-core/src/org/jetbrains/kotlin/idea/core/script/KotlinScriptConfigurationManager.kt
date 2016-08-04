@@ -99,7 +99,7 @@ class KotlinScriptConfigurationManager(
 
     fun getAllLibrarySourcesScope() = NonClasspathDirectoriesScope(getAllLibrarySources())
 
-    private fun reloadScriptDefinitions() {
+    fun reloadScriptDefinitions() {
         (makeScriptDefsFromTemplateProviderExtensions(project, { ep, ex -> log.error("[kts] Error loading definition from ${ep.id}", ex) }) +
          loadScriptConfigsFromProjectRoot(File(project.basePath ?: "")).map { KotlinConfigurableScriptDefinition(it, kotlinEnvVars) }).let {
             if (it.isNotEmpty()) {
