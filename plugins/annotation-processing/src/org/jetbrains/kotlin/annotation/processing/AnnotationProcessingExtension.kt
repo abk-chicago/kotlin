@@ -78,7 +78,7 @@ abstract class AbstractAnnotationProcessingExtension(
             return null
         }
         
-        log { "Analysing Kotlin files: $files" }
+        log { "Analysing Kotlin files: " + files.map { it.virtualFile.path } }
         
         val analysisContext = AnalysisContext(hashMapOf())
         analysisContext.analyzeFiles(files)
