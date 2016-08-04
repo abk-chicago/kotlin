@@ -374,6 +374,12 @@ public class ControlFlowTestGenerated extends AbstractControlFlowTest {
                 String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/cfg/declarations/classesAndObjects/delegationBySuperCall.kt");
                 doTest(fileName);
             }
+
+            @TestMetadata("ObjectEnumQualifiers.kt")
+            public void testObjectEnumQualifiers() throws Exception {
+                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/cfg/declarations/classesAndObjects/ObjectEnumQualifiers.kt");
+                doTest(fileName);
+            }
         }
 
         @TestMetadata("compiler/testData/cfg/declarations/functionLiterals")
