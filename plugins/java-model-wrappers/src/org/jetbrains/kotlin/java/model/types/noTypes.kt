@@ -23,21 +23,25 @@ interface JeNoType : JeTypeMirror, NoType
 object JePackageTypeMirror : JeNoType {
     override fun getKind() = TypeKind.PACKAGE
     override fun <R : Any?, P : Any?> accept(v: TypeVisitor<R, P>, p: P) = v.visitNoType(this, p)
+    override fun toString() = "<package>"
 }
 
 object JeNoneType : JeNoType {
     override fun getKind() = TypeKind.NONE
     override fun <R : Any?, P : Any?> accept(v: TypeVisitor<R, P>, p: P) = v.visitNoType(this, p)
+    override fun toString() = "<none>"
 }
 
 object JeVoidType : JeNoType {
     override fun getKind() = TypeKind.VOID
     override fun <R : Any?, P : Any?> accept(v: TypeVisitor<R, P>, p: P) = v.visitNoType(this, p)
+    override fun toString() = "void"
 }
 
 class CustomJeNoneType(private val _kind: TypeKind) : JeNoType {
     override fun getKind() = _kind
     override fun <R : Any?, P : Any?> accept(v: TypeVisitor<R, P>, p: P) = v.visitNoType(this, p)
+    override fun toString() = _kind.name.toLowerCase()
 }
 
 object JeErrorType : JeNoType {
