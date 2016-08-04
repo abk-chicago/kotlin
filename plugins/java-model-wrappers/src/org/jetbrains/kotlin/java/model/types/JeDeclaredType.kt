@@ -49,6 +49,8 @@ class JeDeclaredType(
         get() = psiClass.manager
 
     override fun getTypeArguments(): List<TypeMirror> {
+        if (psiType.isRaw) return emptyList()
+        
         return when (psiType) {
             is PsiClassReferenceType -> {
                 val substitutor = psiType.resolveGenerics().substitutor
