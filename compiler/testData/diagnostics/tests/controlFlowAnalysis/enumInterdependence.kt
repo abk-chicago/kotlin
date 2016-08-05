@@ -37,7 +37,7 @@ enum class E(val v: Int) {
 }
 // From KT-13322
 object Object1 {
-    val y: Any = Object2.z // z is not yet initialized (?!)
+    val y: Any = Object2.<!UNINITIALIZED_VARIABLE!>z<!>
     object Object2 {
         val z: Any = Object1.y
     }

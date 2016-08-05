@@ -1222,6 +1222,9 @@ class ControlFlowProcessor(private val trace: BindingTrace) {
             generateHeaderDelegationSpecifiers(objectDeclaration)
             generateInitializersForScriptClassOrObject(objectDeclaration)
             generateDeclarationForLocalClassOrObjectIfNeeded(objectDeclaration)
+            objectDeclaration.declarations.filterIsInstance<KtObjectDeclaration>().forEach {
+                generateInstructions(it)
+            }
         }
 
         override fun visitStringTemplateExpression(expression: KtStringTemplateExpression) {
