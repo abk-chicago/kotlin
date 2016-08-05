@@ -63,6 +63,10 @@ class Kapt2GradleSubplugin : Plugin<Project> {
 
 // Subplugin for the Kotlin Gradle plugin
 class Kapt2KotlinGradleSubplugin : KotlinGradleSubplugin {
+    private companion object {
+        val VERBOSE_OPTION_NAME = "kapt2.verbose"
+    }
+    
     override fun isApplicable(project: Project, task: AbstractCompile): Boolean {
         try {
             project.extensions.getByName("android") as? BaseExtension ?: return false
@@ -84,6 +88,8 @@ class Kapt2KotlinGradleSubplugin : KotlinGradleSubplugin {
             variantData: Any?,
             javaSourceSet: SourceSet?
     ): List<SubpluginOption> {
+        if (javaCompile == null) error("Java compile task should exist")
+        
         val kapt2Configurations = project.plugins.findPlugin(Kapt2GradleSubplugin::class.java).getConfigurations(project)
         val pluginOptions = mutableListOf<SubpluginOption>()
         
@@ -91,7 +97,6 @@ class Kapt2KotlinGradleSubplugin : KotlinGradleSubplugin {
         
         val generatedFilesDir = if (variantData != null) {
             variantData as BaseVariantData<*>
-            if (javaCompile == null) error("Java compile task should exist")
             
             for (provider in variantData.sourceProviders) {
                 val kapt2Configuration = kapt2Configurations[(provider as AndroidSourceSet).name]
@@ -104,8 +109,6 @@ class Kapt2KotlinGradleSubplugin : KotlinGradleSubplugin {
             getKaptGeneratedDir(project, variantData.name).apply { variantData.addJavaSourceFoldersToModel(this) }
         } 
         else if (javaSourceSet != null) {
-            if (javaCompile == null) error("Java compile task should exist")
-            
             val kapt2Configuration = kapt2Configurations[javaSourceSet.name]
             if (kapt2Configuration != null && kapt2Configuration.dependencies.size > 0) {
                 javaCompile.dependsOn(kapt2Configuration.buildDependencies)
@@ -120,8 +123,9 @@ class Kapt2KotlinGradleSubplugin : KotlinGradleSubplugin {
 
         // Skip annotation processing in kotlinc if no kapt dependencies were provided
         if (kaptClasspath.isEmpty()) return emptyList()
-
         kaptClasspath.forEach { pluginOptions += SubpluginOption("apclasspath", it.absolutePath) }
+        
+        javaCompile.source(generatedFilesDir)
         
         // Completely disable annotation processing in Java
         (javaCompile as? JavaCompile)?.let { javaCompile ->
@@ -130,6 +134,11 @@ class Kapt2KotlinGradleSubplugin : KotlinGradleSubplugin {
         }
 
         pluginOptions += SubpluginOption("generated", generatedFilesDir.canonicalPath)
+        pluginOptions += SubpluginOption("classes", kotlinCompile.destinationDir.canonicalPath)
+        
+        if (project.hasProperty(VERBOSE_OPTION_NAME) && project.property(VERBOSE_OPTION_NAME) == "true") {
+            pluginOptions += SubpluginOption("verbose", "true")
+        }
         
         return pluginOptions
     }

@@ -377,7 +377,6 @@ open class KotlinAndroidPlugin @Inject constructor(val scriptHandler: ScriptHand
             kotlinTask.mapClasspath { javaTask.classpath + project.files(AndroidGradleWrapper.getRuntimeJars(androidPlugin, androidExt)) }
             val (aptOutputDir, aptWorkingDir) = project.getAptDirsForSourceSet(variantDataName)
             variantData.addJavaSourceFoldersToModel(aptOutputDir)
-
             var kotlinAfterJavaTask: KotlinCompile? = null
 
             if (javaTask is JavaCompile && aptFiles.isNotEmpty()) {
