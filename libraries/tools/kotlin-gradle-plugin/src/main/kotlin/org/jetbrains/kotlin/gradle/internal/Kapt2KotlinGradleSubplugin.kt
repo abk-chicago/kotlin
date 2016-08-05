@@ -146,8 +146,7 @@ class Kapt2KotlinGradleSubplugin : KotlinGradleSubplugin {
     private val BaseVariantData<*>.sourceProviders: List<SourceProvider>
         get() = variantConfiguration.sortedSourceProviders
 
-    override val isBundled = true
     override fun getPluginName() = "org.jetbrains.kotlin.kapt2"
     override fun getGroupName() = "org.jetbrains.kotlin"
-    override fun getArtifactName() = "kotlin-kapt"
+    override fun getArtifactName() = "kotlin-annotation-processing"
 }

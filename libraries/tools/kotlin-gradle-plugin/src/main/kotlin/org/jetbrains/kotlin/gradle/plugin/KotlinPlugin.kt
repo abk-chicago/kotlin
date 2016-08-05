@@ -498,7 +498,7 @@ private fun loadSubplugins(project: Project): SubpluginEnvironment {
                         val id = it.moduleVersion.id
                         subplugin.getGroupName() == id.group && subplugin.getArtifactName() == id.name
                     }?.file
-            if (file != null || subplugin.isBundled) {
+            if (file != null) {
                 subpluginClasspaths.put(subplugin, if (file != null) listOf(file) else emptyList())
             }
         }
