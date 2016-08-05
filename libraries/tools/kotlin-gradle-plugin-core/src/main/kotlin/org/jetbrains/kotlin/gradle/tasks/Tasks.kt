@@ -516,11 +516,24 @@ open class KotlinCompile() : AbstractKotlinCompile<K2JVMCompilerArguments>() {
         addSourceRoot(source)
         super.setSource(source)
     }
+    
+    private fun File.isKapt2GeneratedDirectory(): Boolean {
+        val kapt2GeneratedSourcesDir = File(project.buildDir, "generated/source/kapt2")
+        if (!kapt2GeneratedSourcesDir.isDirectory) return false
+        return startsWith(kapt2GeneratedSourcesDir)
+    }
 
     // override source to track source directory sets and files (for generated android folders)
     override fun source(vararg sources: Any?): SourceTask? {
-        sources.forEach { addSourceRoot(it) }
-        return super.source(sources)
+        val sourcesToAdd = sources.flatMap { source ->
+            when (source) {
+                is File -> if (source.isKapt2GeneratedDirectory()) return this else listOf(source)
+                is SourceDirectorySet -> source.srcDirs.filter { !it.isKapt2GeneratedDirectory() }
+                else -> emptyList<File>()
+            }
+        }.toTypedArray()
+        sourcesToAdd.forEach { addSourceRoot(it) }
+        return super.source(*sourcesToAdd)
     }
 
     fun findRootsForSources(sources: Iterable<File>): Set<File> {
