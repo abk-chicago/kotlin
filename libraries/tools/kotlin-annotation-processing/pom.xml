@@ -131,6 +131,7 @@
                 <groupId>org.jetbrains.kotlin</groupId>
                 <version>${project.version}</version>
                 <configuration>
+                    <jdkHome>${env.JDK_18}</jdkHome>
                     <annotationPaths>
                         <annotationPath>${basedir}/kotlinAnnotation</annotationPath>
                     </annotationPaths>
